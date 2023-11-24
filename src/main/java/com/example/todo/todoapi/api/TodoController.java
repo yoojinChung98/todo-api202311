@@ -18,7 +18,8 @@ import java.lang.annotation.Repeatable;
 @Slf4j
 @RequiredArgsConstructor
 @RequestMapping("/api/todos")
-@CrossOrigin(origins = "http://localhost:3000") // 여러개 걸고 싶으면 중괄호로 감싸면 돼용~~~
+//@CrossOrigin(origins = "http://localhost:3000") // 여러개 걸고 싶으면 중괄호로 감싸면 돼용~~~ (spring 시큐리티모듈때문에 먼가 시큐리티 설정때문에 패치 요청이 막횜)
+@CrossOrigin() // 응답된 자원을 전달할 수 있다고는 표현해야 함.
 // 입력한 곳에서 요청이 왔을 때, 이곳으로 요청의 응답을 할 수 있도록 해주세요! 하는 것.
 public class TodoController {
 
