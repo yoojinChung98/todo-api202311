@@ -1,8 +1,10 @@
 package com.example.todo.userapi.service;
 
 
-import com.example.todo.userapi.dto.UserRequestSignUpDTO;
-import com.example.todo.userapi.dto.UserSignUpResponseDTO;
+import com.example.todo.auth.TokenProvider;
+import com.example.todo.userapi.dto.request.LoginRequestDTO;
+import com.example.todo.userapi.dto.request.UserRequestSignUpDTO;
+import com.example.todo.userapi.dto.response.UserSignUpResponseDTO;
 import com.example.todo.userapi.entity.User;
 import com.example.todo.userapi.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     // 빈 컨테이너에 등록된 빈 중에, 반환타입이 PsswordEncoder 인 빈이 하나 있어서 해당 메서드가 작동?돼서? 새로 생성된 BCryptPasswordEncoder가 주입됨? 맞는 듯
+    private final TokenProvider tokenProvider; // 서비스에서 주입받아서 사용하려구 TokenProvider 클래스를 빈등록(component) 해놓은 것.
 
     // 회원 가입 처리
     public UserSignUpResponseDTO create(final UserRequestSignUpDTO dto) {
@@ -45,5 +48,30 @@ public class UserService {
 
     public boolean isDuplicate(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    // 회원 인증
+    public void authenticate(final LoginRequestDTO dto) {
+
+        // 이메일을 통해 회원정보 조회 먼저!
+        User user = userRepository.findByEmail(dto.getEmail())
+                .orElseThrow(
+                        () -> new RuntimeException("가입된 회원이 아닙니다.")
+                );
+
+        // 패스워드 검증
+        String rawPassword = dto.getPassword(); // 입력한 비번
+        String encodedPassword = user.getPassword(); // DB에 저장된 암호화된 비번.
+
+        if(passwordEncoder.matches(rawPassword, encodedPassword)) {
+            throw new RuntimeException("비밀번호가 틀렸습니다.");
+        }
+
+        log.info("{}님 로그인 성공!", user.getUserName());
+
+        // 로그인 성공 후에 클라이언트에게 뭘 리턴할 것인가???
+        // // -> JWT !를 클라이언트에게 발급해 줄 것.
+
+
     }
 }
