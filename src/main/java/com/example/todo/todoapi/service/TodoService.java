@@ -6,6 +6,8 @@ import com.example.todo.todoapi.dto.response.TodoDetailResponseDTO;
 import com.example.todo.todoapi.dto.response.TodoListResponseDTO;
 import com.example.todo.todoapi.entity.Todo;
 import com.example.todo.todoapi.repository.TodoRepository;
+import com.example.todo.userapi.entity.User;
+import com.example.todo.userapi.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,17 +24,30 @@ import java.util.stream.Collectors;
 public class TodoService {
 
     private final TodoRepository todoRepository;
+    private final UserRepository userRepository;
 
-    public TodoListResponseDTO create(final TodoCreateRequestDTO requestDTO) throws RuntimeException { // 매개변수에 final 을 붙인다는 말은, 서비스 내에서 해당 파라미터의 값을 바꿀 수 없다는 뜻 (불변성)
-        // 즉, 매개변수를 변형하지 말고 넘겨 준 대로 쓰라는 말!
-        todoRepository.save(requestDTO.toEntity());
+    public TodoListResponseDTO create(
+            final TodoCreateRequestDTO requestDTO,
+            final String userId
+    )
+            throws RuntimeException { // 매개변수에 final 을 붙인다는 말은, 서비스 내에서 해당 파라미터의 값을 바꿀 수 없다는 뜻 (불변성)
+        // 즉, 매개변수를 변형하지 말고 넘겨 준 대 쓰라는 말!
+
+        User user = getUser(userId);
+        // 이제는 할 일 등록은 회원만 할 수 있도록 세팅하기 때문에
+        // toEntity()의 매개값으로 User 엔터티도 함께 전달해야 합니다. -> userId로 회원 엔터티를 조회해야 함.
+        todoRepository.save(requestDTO.toEntity(user));
         log.info("할 일 저장 완료! 제목: {}", requestDTO.getTitle());
 
-        return retrieve();
+        return retrieve(userId);
     }
 
-    public TodoListResponseDTO retrieve() { // 앞으로 글목록이 필요할 때마다 얘를 호출하면 됨.
-        List<Todo> entityList = todoRepository.findAll();
+    public TodoListResponseDTO retrieve(String userId) { // 앞으로 글목록이 필요할 때마다 얘를 호출하면 됨.
+
+        // 로그인 한 유저의 정보를 데이터베이스 조회
+        User user = getUser(userId);
+
+        List<Todo> entityList = todoRepository.findAllByUser(user);
 
         List<TodoDetailResponseDTO> dtoList
                 = entityList.stream()
@@ -44,6 +59,13 @@ public class TodoService {
                 .build();
     }
 
+    private User getUser(String userId) {
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new RuntimeException("해당하는 아이디로 매칭되는 회원 정보가 없습니다.")
+        );
+        return user;
+    }
+
 
     public TodoListResponseDTO delete(final String todoId) { //todoId가 변경되는것을 막기 위해 final 추가
         try {
@@ -53,7 +75,7 @@ public class TodoService {
                     , todoId, e.getMessage());
             throw new RuntimeException("아이디가 존재하지 않아서 삭제에 실패했습니다.");
         }
-        return retrieve();
+        return retrieve("");
     }
 
     public TodoListResponseDTO update(final TodoModifyRequestDTO requestDTO) throws RuntimeException {
@@ -66,6 +88,6 @@ public class TodoService {
             // 변경감지(dirtyCheck)가 발생할 것이고~
             todoRepository.save(todo);
         });
-        return retrieve();
+        return retrieve("");
     }
 }

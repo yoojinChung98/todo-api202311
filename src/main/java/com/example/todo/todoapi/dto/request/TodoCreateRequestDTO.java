@@ -2,6 +2,7 @@ package com.example.todo.todoapi.dto.request;
 
 import com.example.todo.todoapi.dto.response.TodoListResponseDTO;
 import com.example.todo.todoapi.entity.Todo;
+import com.example.todo.userapi.entity.User;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.Response;
@@ -29,9 +30,10 @@ public class TodoCreateRequestDTO {
     private String title;
 
     // dto를 엔터티로 변환
-    public Todo toEntity() {
+    public Todo toEntity(User user) {
         return Todo.builder()
                 .title(this.title)
+                .user(user)
                 .build();
     }
 
