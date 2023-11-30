@@ -12,16 +12,16 @@ import java.time.LocalDate;
 @NoArgsConstructor @AllArgsConstructor
 @Builder
 public class LoginResponseDTO {
-    
+
     private String email;
     private String userName;
-    
+
     @JsonFormat(pattern = "yyyy년 MM월 dd일")
     private LocalDate joinDate;
-    
+
     private String token; // 인증 토큰
     private String role; // 권한
-    
+
     public LoginResponseDTO(User user, String token) {
         this.email = user.getEmail();
         this.userName = user.getUserName();
@@ -30,3 +30,16 @@ public class LoginResponseDTO {
         this.role = String.valueOf(user.getRole());
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

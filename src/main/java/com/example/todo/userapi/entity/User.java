@@ -8,7 +8,7 @@ import org.hibernate.annotations.GenericGenerator;
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
-@Setter @Getter
+@Getter
 @ToString @EqualsAndHashCode(of = "id")
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,12 +20,12 @@ public class User {
 
     @Id
     @Column(name = "user_id")
-    @GeneratedValue(generator="system-uuid")
-    @GenericGenerator(name="system-uuid", strategy = "uuid")
-    private String id; // pk로 쓸 거고, 사용자가 입력하는 값이 아님. (계정명이 아니라 식별 코드)
+    @GeneratedValue(generator = "system-uuid")
+    @GenericGenerator(name = "system-uuid", strategy = "uuid")
+    private String id; // 계정명이 아니라 식별 코드
 
     @Column(nullable = false, unique = true)
-    private String email; // 이메일주소가 아이디가 되도록 할 것.
+    private String email;
 
     @Column(nullable = false)
     private String password;
@@ -37,8 +37,28 @@ public class User {
     private LocalDateTime joinDate;
 
     @Enumerated(EnumType.STRING)
-//    @ColumnDefault("'COMMON'") // ColumnDefault :디폴트값 설정, 원래는 그냥 문자열 주면 되는데, enum 타입이라서 홑따옴표를 또 넣어줌.
-    @Builder.Default // enum이 안먹길래 걍 직접초기화 해버렸음
-    private Role role = Role.COMMON; // 유저 권한 초기값설정
+//    @ColumnDefault("'COMMON'")
+    @Builder.Default
+    private Role role = Role.COMMON; // 유저 권한
+    
+    private String profileImg; // 프로필 이미지 경로
+
+    // 등급 수정 메서드
+    public void changeRole(Role role) {
+        this.role = role;
+    }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

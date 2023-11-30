@@ -12,7 +12,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-
 @SpringBootTest
 @Transactional
 @Rollback(false)
@@ -20,7 +19,7 @@ class UserRepositoryTest {
 
     @Autowired
     UserRepository userRepository;
-
+    
     @Test
     @DisplayName("회원가입 테스트")
     void saveTest() {
@@ -30,21 +29,22 @@ class UserRepositoryTest {
                 .password("1234")
                 .userName("송아지")
                 .build();
+
         //when
         User saved = userRepository.save(newUser);
+
         //then
         assertNotNull(saved);
     }
-    
+
     @Test
     @DisplayName("이메일로 회원 조회하기")
     void findEmailTest() {
         //given
         String email = "abc1234@abc.com";
-
         //when
         Optional<User> userOptional = userRepository.findByEmail(email);
-    
+
         //then
         assertTrue(userOptional.isPresent());
         User user = userOptional.get();
@@ -54,33 +54,43 @@ class UserRepositoryTest {
         System.out.println("user = " + user);
         System.out.println("\n\n\n");
     }
-
+    
     @Test
-    @DisplayName("이메일 중복체크를 하면 중복 값이 true 여야 한다.")
+    @DisplayName("이메일 중복체크를 하면 중복값이 true여야 한다.")
     void emailIsPresent() {
         //given
         String email = "abc1234@abc.com";
-
+        
         //when
         boolean flag = userRepository.existsByEmail(email);
 
         //then
         assertTrue(flag);
-
     }
 
     @Test
-    @DisplayName("이메일 중복체크를 하면 중복 값이 false 여야 한다.")
+    @DisplayName("이메일 중복체크를 하면 중복값이 false여야 한다.")
     void emailIsNotPresent() {
         //given
-        String email = "kim1234@abc.com";
+        String email = "kim1234@naver.com";
 
         //when
         boolean flag = userRepository.existsByEmail(email);
 
         //then
         assertFalse(flag);
-
     }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+

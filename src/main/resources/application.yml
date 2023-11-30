@@ -9,15 +9,15 @@ spring:
     password: spring
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
-    #    show-sql: true # ?? ??? ??? ???? ??
-    # ?? ?? -> ? DB? ?? ??? ??
     database-platform: org.hibernate.dialect.MySQL8Dialect
     hibernate:
-      ddl-auto: update # ?? DDL ?? ?? -> create? ???? ??? ???? ??? ?? ??.
-    #    properties:
-    #      hibernate:
-    #        format_sql: true # sql? ????? ??? ??
-    database: mysql # DB ?? ??
+      ddl-auto: update
+    database: mysql
+  servlet:
+    multipart:
+      max-file-size: 10MB # 1개의 파일의 최대 사이즈 제한.
+      max-request-size: 20MB # 전체 요청의 최대 사이즈 제한.
+
 
 logging.level:
   org.hibernate.SQL: debug
@@ -25,8 +25,17 @@ logging.level:
 # swagger setting
 springdoc:
   swagger-ui:
-    path: /myapi.html # ?? ??? ??? ???? ?? (?? ??? ? ??? ???. ?, ?? url ??? ? ??????)
-    
+    path: /myapi.html
+
 jwt:
- # 아까 테스트에서 생성한 랜덤 문자열
-  secret: 1PupoBhAcuJ+UbJx9qf1fhyULFp5ziEnqV7HJKTMCovDJ/uXKdlXNIifSOcg3P/3Eiv3af5jBD6j7gKgxxJelA==
+  secret: XO5HNAcGS6PNO57jJt/4v8fuqHbt19X2dPKq1EPpwC0MWu4XYnNNKx7LvQT7ASFyKZRvHVe7XxHi1gwApYAW4Q==
+
+# 업로드 파일 저장 경로
+upload:
+  path: C:/todo_upload
+
+
+
+
+
+

@@ -1,17 +1,25 @@
 package com.example.todo.userapi.service;
 
-
 import com.example.todo.auth.TokenProvider;
+import com.example.todo.auth.TokenUserInfo;
+import com.example.todo.exception.NoRegisteredArgumentsException;
 import com.example.todo.userapi.dto.request.LoginRequestDTO;
 import com.example.todo.userapi.dto.request.UserRequestSignUpDTO;
 import com.example.todo.userapi.dto.response.LoginResponseDTO;
 import com.example.todo.userapi.dto.response.UserSignUpResponseDTO;
+import com.example.todo.userapi.entity.Role;
 import com.example.todo.userapi.entity.User;
 import com.example.todo.userapi.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -20,32 +28,35 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    // 빈 컨테이너에 등록된 빈 중에, 반환타입이 PsswordEncoder 인 빈이 하나 있어서 해당 메서드가 작동?돼서? 새로 생성된 BCryptPasswordEncoder가 주입됨? 맞는 듯
-    private final TokenProvider tokenProvider; // 서비스에서 주입받아서 사용하려구 TokenProvider 클래스를 빈등록(component) 해놓은 것.
+    private final TokenProvider tokenProvider;
+
+    // yml 파일에 작성한 값 가져와서 사용.
+    @Value("${upload.path}")
+    private String uploadRootPath;
 
     // 회원 가입 처리
-    public UserSignUpResponseDTO create(final UserRequestSignUpDTO dto) {
+    public UserSignUpResponseDTO create(
+            final UserRequestSignUpDTO dto,
+            final String uploadedFilePath
+    ) {
         String email = dto.getEmail();
 
         if(isDuplicate(email)) {
-            log.warn("이메일이 중복되었습니다. - {}",  email);
+            log.warn("이메일이 중복되었습니다. - {}", email);
             throw new RuntimeException("중복된 이메일 입니다.");
         }
 
-        // 패스워드 인코딩 (그리고 dto에 재셋팅)
+        // 패스워드 인코딩
         String encoded = passwordEncoder.encode(dto.getPassword());
         dto.setPassword(encoded);
 
         // dto를 User Entity로 변환해서 저장
-        User saved = userRepository.save(dto.toEntity());
+        User saved = userRepository.save(dto.toEntity(uploadedFilePath));
         log.info("회원 가입 정상 수행됨! - saved user - {}", saved);
 
-        // 지금 당장은 비워두고, 나중에 화면단 에서 회원가입 직후 머 회원가입정보를 넘겨달라!
-        // 머 이런 각 상황에 따라서 그 때 추가하면 됨!
-        // 일단은 머 대충 먼가를 반환을 시켜주긴 할거임
         return new UserSignUpResponseDTO(saved);
-    }
 
+    }
 
     public boolean isDuplicate(String email) {
         return userRepository.existsByEmail(email);
@@ -54,7 +65,7 @@ public class UserService {
     // 회원 인증
     public LoginResponseDTO authenticate(final LoginRequestDTO dto) {
 
-        // 이메일을 통해 회원정보 조회 먼저!
+        // 이메일을 통해 회원 정보 조회
         User user = userRepository.findByEmail(dto.getEmail())
                 .orElseThrow(
                         () -> new RuntimeException("가입된 회원이 아닙니다.")
@@ -62,8 +73,7 @@ public class UserService {
 
         // 패스워드 검증
         String rawPassword = dto.getPassword(); // 입력한 비번
-        String encodedPassword = user.getPassword(); // DB에 저장된 암호화된 비번.
-        log.info(rawPassword);
+        String encodedPassword = user.getPassword(); // DB에 저장된 암호화된 비번
 
         if(!passwordEncoder.matches(rawPassword, encodedPassword)) {
             throw new RuntimeException("비밀번호가 틀렸습니다.");
@@ -72,11 +82,76 @@ public class UserService {
         log.info("{}님 로그인 성공!", user.getUserName());
 
         // 로그인 성공 후에 클라이언트에게 뭘 리턴할 것인가???
-        // // -> JWT !를 클라이언트에게 발급해 줄 것.
-        String token = tokenProvider.createToken(user);// user정보를 바탕으로 토큰 하나를 생성해조!
+        // -> JWT를 클라이언트에게 발급해 주어야 한다!
+        String token = tokenProvider.createToken(user);
 
         return new LoginResponseDTO(user, token);
 
+    }
 
+
+    // 프리미엄으로 등급 업
+    public LoginResponseDTO promoteToPremium(TokenUserInfo userInfo) {
+
+        User foundUser = userRepository.findById(userInfo.getUserId())
+                .orElseThrow(
+                        () -> new NoRegisteredArgumentsException("회원 조회에 실패했습니다!")
+                );
+
+        // 일반(COMMON) 회원이 아니라면 예외 발생
+        // @PreAuthorize 아노테이션을 사용하면 이 부분 코드는 생략되어도 문제가 없음.
+        if(userInfo.getRole() != Role.COMMON) {
+            throw new IllegalArgumentException("일반 회원이 아니라면 등급을 상승시킬 수 없습니다.");
+        }
+
+        // 등급 변경
+        foundUser.changeRole(Role.PREMIUM);
+        User saved = userRepository.save(foundUser);
+
+        // 토큰을 재발급! (새롭게 변경된 정보로)
+        String token = tokenProvider.createToken(saved);
+
+        return new LoginResponseDTO(saved, token);
+    }
+
+    /**
+     * 업로드 된 파일을 서버에 저장하고 저장 경로를 리턴.
+     *
+     * @param profileImg - 업로드 된 파일의 정보
+     * @return 실제로 저장된 이미지 경로
+     */
+    public String uploadProfileImage(MultipartFile profileImg) throws IOException {
+
+        // 루트 디렉토리가 실존하는 지 확인 후 존재하지 않으면 생성.
+        File rootDir = new File(uploadRootPath);
+        if (!rootDir.exists()) rootDir.mkdirs();
+
+        // 파일명을 유니크하게 변경 (이름 충돌 가능성 대비)
+        // UUID 와 원본파일명을 혼합. -> 규칙없고 걍 맘대로 조합하새요~
+        String uniqueFileName = UUID.randomUUID() + "_" + profileImg.getOriginalFilename();
+
+        // 파일을 저장
+        File uploadFile = new File(uploadRootPath + "/" + uniqueFileName);
+        profileImg.transferTo(uploadFile); // 예외처리는 메서드호출부로 throw~
+
+        return uniqueFileName;
+    }
+
+    public String findProfilePath(String userId) {
+        User user = userRepository.findById(userId).orElseThrow();
+        // DB에 저장되는 profile_img 는 파일명. -> service가 가지고 있는 Root Path와 연결해서 리턴~
+        return uploadRootPath + "/" + user.getProfileImg();
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+

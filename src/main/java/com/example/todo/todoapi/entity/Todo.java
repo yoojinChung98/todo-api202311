@@ -7,7 +7,6 @@ import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
-import java.util.stream.Stream;
 
 @Setter @Getter
 @ToString @EqualsAndHashCode(of = "todoId")
@@ -24,7 +23,7 @@ public class Todo {
 
     @Column(nullable = false, length = 30)
     private String title; // 할 일
-
+    
     private boolean done; // 할 일 완료 여부
 
     @CreationTimestamp
@@ -33,4 +32,13 @@ public class Todo {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
+    
 }
+
+
+
+
+
+
+
+
