@@ -198,6 +198,15 @@ public class UserController {
 
     }
 
+    @GetMapping("/kakaoLogin")
+    public ResponseEntity<?> kakaoLogin(String code) {
+        log.info("/api/auth/kakaoLogin - GET! -code: {}", code);
+
+        userService.kakaoService(code);
+
+        return null;
+    }
+
 
 }
 
