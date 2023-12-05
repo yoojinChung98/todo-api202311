@@ -6,6 +6,7 @@ import com.example.todo.userapi.dto.request.LoginRequestDTO;
 import com.example.todo.userapi.dto.request.UserRequestSignUpDTO;
 import com.example.todo.userapi.dto.response.LoginResponseDTO;
 import com.example.todo.userapi.dto.response.UserSignUpResponseDTO;
+import com.example.todo.userapi.repository.UserRepository;
 import com.example.todo.userapi.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.util.FileCopyUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.UnsatisfiedServletRequestParameterException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -151,6 +153,9 @@ public class UserController {
             // (모든 사용자가 프로필 사진을 갖는 것이 아님) -> 프사가 없는 사람은 경로가 존재하지 않을 것
             if(!profileFile.exists()) {
                 // 만약 존재하지 않는 경로라면 클라이언트로 404 status를 리턴. (메세지 줄 것도 없음)
+                if(filePath.startsWith("http://")) {
+                    return ResponseEntity.ok().body(filePath);
+                }
                 return ResponseEntity.notFound().build();
             }
 
@@ -168,8 +173,6 @@ public class UserController {
             return ResponseEntity.ok()
                     .headers(headers)
                     .body(fileData);
-
-
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -201,12 +204,20 @@ public class UserController {
     @GetMapping("/kakaoLogin")
     public ResponseEntity<?> kakaoLogin(String code) {
         log.info("/api/auth/kakaoLogin - GET! -code: {}", code);
+        LoginResponseDTO responseDTO = userService.kakaoService(code);
 
-        userService.kakaoService(code);
-
-        return null;
+        return ResponseEntity.ok().body(responseDTO);
     }
 
+    // 로그아웃 처리
+    @GetMapping("/logout")
+    public ResponseEntity<?> logout(@AuthenticationPrincipal TokenUserInfo userInfo) {
+        log.info("/api/auth/logout - GET! - user: {}", userInfo.getEmail());
+
+        String result = userService.logout(userInfo);
+
+        return ResponseEntity.ok().body(result);
+    }
 
 }
 
