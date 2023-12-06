@@ -2,6 +2,8 @@ package com.example.todo.filter;
 
 import com.example.todo.auth.TokenProvider;
 import com.example.todo.auth.TokenUserInfo;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -69,9 +71,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             } else {
                 log.info("token이 null 입니다.");
             }
+        } catch (ExpiredJwtException e) {
+            log.warn("토큰의 기한이 만료되었습니다.!");
+            throw new JwtException("토큰 기한 만료!"); // 여기서 발생된 예외는 앞단에 띄워놓은 필터로 전달됨 (WebSecurityConfig에서 설정해놓음)
+
         } catch (Exception e) {
             e.printStackTrace();
-            log.info("서명이 일치하지 않습니다! 토큰이 위조 되었습니다!");
+            log.warn("서명이 일치하지 않습니다! 토큰이 위조 되었습니다!");
         }
 
         // 필터 체인에 내가 만든 필터 실행 명령
