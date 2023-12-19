@@ -46,6 +46,7 @@ public class TokenProvider {
                 "iss": "서비스 이름(발급자)",
                 "exp": "2023-12-27(만료일자)",
                 "iat": "2023-11-27(발급일자)",
+                <여기부터는 추가 클레임>
                 "email": "로그인한 사람 이메일",
                 "role": "Premium"
                 ...
@@ -84,7 +85,7 @@ public class TokenProvider {
                 // 토큰 발급자의 발급 당시의 서명을 넣어줌
                 .setSigningKey(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
                 //서명 위조 검사: 위조된 경우에는 예외가 발생합니다.
-                //위조가 되지 않은 경우 payload를 리턴
+                //위조가 되지 않은 경우 payload를 리턴 (Jws<Claims> 가 payload 인건가요?)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();

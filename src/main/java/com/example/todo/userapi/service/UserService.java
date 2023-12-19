@@ -2,6 +2,7 @@ package com.example.todo.userapi.service;
 
 import com.example.todo.auth.TokenProvider;
 import com.example.todo.auth.TokenUserInfo;
+import com.example.todo.aws.S3Service;
 import com.example.todo.exception.NoRegisteredArgumentsException;
 import com.example.todo.userapi.dto.request.LoginRequestDTO;
 import com.example.todo.userapi.dto.request.UserRequestSignUpDTO;
@@ -38,6 +39,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
+    private final S3Service s3Service;
 
     @Value("${kakao.client_id}")
     private String KAKAO_CLIENT_ID;
@@ -48,8 +50,9 @@ public class UserService {
 
 
     // yml 파일에 작성한 값 가져와서 사용.
-    @Value("${upload.path}")
-    private String uploadRootPath;
+//    @Value("${upload.path}")
+//    private String uploadRootPath;
+// 이제는 s3에 파일을 저장할 것이므로 상단의 코드는 필요 없음
 
     // 회원 가입 처리
     public UserSignUpResponseDTO create(
@@ -140,29 +143,36 @@ public class UserService {
     public String uploadProfileImage(MultipartFile profileImg) throws IOException {
 
         // 루트 디렉토리가 실존하는 지 확인 후 존재하지 않으면 생성.
-        File rootDir = new File(uploadRootPath);
-        if (!rootDir.exists()) rootDir.mkdirs();
+//        File rootDir = new File(uploadRootPath);
+//        if (!rootDir.exists()) rootDir.mkdirs();\
+// 이제는 s3에 파일을 저장할 것이기 때문에 위의 코드는 필요 없음.
 
         // 파일명을 유니크하게 변경 (이름 충돌 가능성 대비)
         // UUID 와 원본파일명을 혼합. -> 규칙없고 걍 맘대로 조합하새요~
         String uniqueFileName = UUID.randomUUID() + "_" + profileImg.getOriginalFilename();
 
         // 파일을 저장
-        File uploadFile = new File(uploadRootPath + "/" + uniqueFileName);
-        profileImg.transferTo(uploadFile); // 예외처리는 메서드호출부로 throw~
+//        File uploadFile = new File(uploadRootPath + "/" + uniqueFileName);
+//        profileImg.transferTo(uploadFile); // 예외처리는 메서드호출부로 throw~
+// s3버켓으로 인해 이제 로컬 경로에 저장하는 코드들은 필요 없음.
 
-        return uniqueFileName;
+
+// 이제 파일을 s3 버킷에 저장하자!
+        // 따라서 아예 독립적인 클래스를 만들어서 전권을 위임하고자 함.
+        String uploadUrl = s3Service.uploadToS3Bucket(profileImg.getBytes(), uniqueFileName);
+
+        return uploadUrl;
     }
 
     public String findProfilePath(String userId) {
         User user = userRepository.findById(userId).orElseThrow();
-
-        String profileImg = user.getProfileImg();
-        if(profileImg.startsWith("http://")) {
-            return profileImg;
-        }
+        return user.getProfileImg(); // 이미지를 등록하지 않았으면 null, 카카오랑/ 그냥 파일 올린 사람은 모두 url로 올 것이기 때문에 하단의 if절 필오 없음.
+//        String profileImg = user.getProfileImg();
+//        if(profileImg.startsWith("http://")) {
+//            return profileImg;
+//        }
         // DB에 저장되는 profile_img는 파일명. => service가 가지고 있는 Root Path 와 연결해서 리턴
-        return uploadRootPath + "/" + profileImg;
+//        return uploadRootPath + "/" + profileImg;
     }
 
     public LoginResponseDTO kakaoService(final String code) {
