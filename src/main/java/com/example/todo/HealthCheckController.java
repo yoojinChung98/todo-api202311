@@ -21,7 +21,8 @@ public class HealthCheckController {
     @GetMapping("/") // / 이런 요청 없어서 걍 임의로 쓴 것임.
     public ResponseEntity<?> healthCheck() {
         log.info("server is runnign... I'm Healthy!");
-        return ResponseEntity.ok().body("It's OK!");
+        log.info("Hello World");
+        return ResponseEntity.ok().body("It's OK~!!");
     }
 
 }
